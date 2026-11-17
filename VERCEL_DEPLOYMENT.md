@@ -16,7 +16,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `APP_URL` | Exact HTTPS origin used for same-origin request checks | `https://your-private-storyman.example` |
-| `DATABASE_URL` | PostgreSQL URL for production (optional, uses SQLite locally) | `postgres://user:pass@host:5432/db` |
+| `DATABASE_URL` | PostgreSQL URL required for durable production persistence (SQLite is local-only) | `postgres://user:pass@host:5432/db` |
 | `TOKEN_ENCRYPTION_KEY` | Token encryption key (must be ≥32 chars) | `your-token-encryption-key` |
 
 ### Optional - Writing Provider
@@ -98,7 +98,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables
 
 3. **Configure Environment:**
    - In Vercel Dashboard, go to your project → Settings → Environment Variables
-   - Add all required variables from the table above
+   - Add all required variables from the table above, including `APP_URL` set to the deployed HTTPS origin (not localhost)
    - Restart the deployment after adding variables
 
 4. **Configure Custom Domain (Optional):**
@@ -109,15 +109,15 @@ Set these in Vercel Dashboard → Settings → Environment Variables
 ## Runtime Configuration
 
 Vercel automatically handles:
-- **Builds**: Runs `vercel-build.sh` which sets environment variables and builds the app
-- **Functions**: API routes have a 60-second timeout configured in `vercel.json`
+- **Builds**: Runs `npm run build` as configured in `vercel.json`
+- **Functions**: API routes target a 60-second timeout configured in `vercel.json`; deployment settings and plan limits still apply
 - **Regions**: Deployed to IAD1 (US East)
 
 ## Database Setup
 
-### Option 1: SQLite (Default)
+### Option 1: SQLite (Local only)
 
-Vercel uses SQLite by default. The database is stored in Vercel's persistent filesystem.
+SQLite is not suitable for persistent data on Vercel: the function filesystem is ephemeral. For durable jobs, schedules, and OAuth state, configure `DATABASE_URL` to use hosted PostgreSQL.
 
 ### Option 2: PostgreSQL
 
@@ -127,19 +127,12 @@ Vercel uses SQLite by default. The database is stored in Vercel's persistent fil
 
 ## Worker Deployment
 
-The worker runs as a separate process in Vercel's serverless environment. It:
-- Polls the database every 2 seconds
-- Processes jobs and variants
-- Maintains heartbeats
-
-**Note**: Vercel's serverless functions have cold-start times. For production use, consider:
-- Increasing function timeout (already set to 60s)
-- Implementing a background job queue service (BullMQ + Redis)
+Vercel does not execute a continuously running worker process from this repository. Deploy the existing `npm run worker` process to a separate always-on host/container with the same `DATABASE_URL` and durable artifact storage. Without that worker, queued jobs and scheduled runs will not execute. Long FFmpeg/TTS tasks are also not validated for Vercel function execution.
 
 ## Limitations in Vercel
 
-1. **Worker Persistence**: The worker is stateless. Job state is stored in the database.
-2. **File Storage**: `data/artifacts` is stored in Vercel's filesystem (limited by Vercel's storage).
+1. **Worker Persistence**: Vercel does not host the persistent worker; run it on a separate long-running host.
+2. **File Storage**: `data/artifacts` is local filesystem storage; Vercel functions do not provide durable shared storage. External durable storage is not implemented.
 3. **Media Processing**: Video rendering requires FFmpeg and Python. These are included in the Docker build but may have size constraints.
 4. **Long-Running Tasks**: TTS and alignment are synchronous. Consider implementing async processing for production.
 
@@ -178,6 +171,9 @@ npm run dev
 
 ## Production Checklist
 
+- [ ] Passwordless access restricted at the network or hosting layer
+- [ ] `APP_URL` matches the production HTTPS origin
+- [ ] PostgreSQL and a separate persistent worker configured
 - [ ] All required environment variables set
 - [ ] Database URL configured (if using PostgreSQL)
 - [ ] OAuth provider credentials verified

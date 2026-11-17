@@ -22,6 +22,6 @@ TikTok requires a fresh [`creator_info/query`](https://developers.tiktok.com/doc
 
 ## Runtime / infrastructure boundaries
 
-The default local database is SQLite with WAL; `DATABASE_URL` enables the PostgreSQL adapter. The persistent worker uses database polling and deterministic scheduler occurrence keys. Redis/BullMQ is not implemented and must not be reported as active. Local media is protected through authenticated API downloads; S3-compatible object storage is not implemented. Owner authentication is single-user; a full multi-user RBAC system is pending.
+The default local database is SQLite with WAL; `DATABASE_URL` enables the PostgreSQL adapter. The persistent worker uses database polling and deterministic scheduler occurrence keys. Redis/BullMQ is not implemented and must not be reported as active. Local media downloads are passwordless; deploy only behind private-network or hosting-level access controls. S3-compatible object storage and multi-user RBAC are not implemented.
 
 FFmpeg original graphics, complete narration preservation, measured word alignment and artifact creation are implemented as a development vertical slice. Licensed stock selection, music/SFX procurement, full black-frame/loudness QA, genuine platform narrative adaptations and real long-form acceptance scenarios remain pending. Read `TASKS.md` and `RUNBOOK.md` before enabling automation.

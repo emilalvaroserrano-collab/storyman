@@ -1,16 +1,16 @@
-# ✅ Deployment Ready
+# Web Deployment Configuration (Not Production-Ready)
 
-The Storyman application is **fully configured for Vercel deployment** and currently running locally.
+Storyman has a Vercel web configuration, but the full pipeline is **not production-ready on Vercel**: persistent PostgreSQL, durable artifact storage, and an external long-running worker are still required.
 
 ## Current Status
 
 | Component | Status | URL |
 |-----------|--------|-----|
-| **Dev Server** | ✅ Running | http://127.0.0.1:3210 |
-| **Worker** | ✅ Online | Background process |
-| **Database** | ✅ SQLite Local | `data/storyman.sqlite` |
-| **Build** | ✅ Passing | `npm run check` |
-| **Health** | ✅ OK | http://127.0.0.1:3210/api/health |
+| **Dev Server** | Not verified in this session | http://127.0.0.1:3210 (local) |
+| **Worker** | Not verified in this session | Separate long-running process |
+| **Database** | Local SQLite supported | `data/storyman.sqlite` |
+| **Build** | Full build not verified in this session | `npm run check` requires dependencies |
+| **Health** | Not verified in this session | http://127.0.0.1:3210/api/health (local) |
 
 ## What's Ready for Deployment
 
@@ -117,8 +117,8 @@ See `VERCEL_DEPLOYMENT.md` for all available variables.
 - The app is **local-first** and deliberately not production-ready
 - Real integrations require account/provider configuration
 - OAuth credentials are encrypted and stored server-side
-- Database and artifacts are persisted in Vercel's filesystem
-- Worker runs as a serverless function (stateless, job state in DB)
+- Vercel function storage is ephemeral; PostgreSQL and external artifact storage are required for persistence
+- The worker does **not** run persistently on Vercel; deploy `npm run worker` to an always-on host
 
 ## 🆘 Need Help?
 
@@ -129,5 +129,5 @@ See `VERCEL_DEPLOYMENT.md` for all available variables.
 
 ---
 
-**Status**: ✅ Ready to Deploy
+**Status**: Web configuration prepared; full production deployment requires additional infrastructure
 **Last Updated**: 2026-11-17

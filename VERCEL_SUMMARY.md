@@ -1,8 +1,8 @@
 # Deployment Summary
 
-## Status: ✅ Deployed and Running
+## Status: Web Configuration Only (Not Deployed or Verified)
 
-The Storyman application is now deployable on Vercel with full configuration.
+This repository contains a Next.js Vercel configuration. Full app functionality is not yet deployable on Vercel without external worker hosting, a durable database, and shared artifact storage.
 
 ## What Was Set Up
 
@@ -43,14 +43,14 @@ Added Vercel-specific scripts:
 
 ## Current Status
 
-✅ **Dev server running** on http://127.0.0.1:3210
-✅ **Worker running** and healthy
-✅ **Build passing** — typecheck, tests, build all green
-✅ **Vercel configuration** complete
+- Local dev server and persistent worker: **not verified in this session**
+- Next.js syntax and passwordless security smoke checks: **passed**
+- Full dependency-based build and production deployment: **not verified**
+- Vercel web config exists; worker/artifact persistence requires external infrastructure
 
 ## How to Deploy to Vercel
 
-### Quick Deploy (2 minutes)
+### Web Deployment Setup
 
 1. **Push to GitHub:**
    ```bash
@@ -97,9 +97,9 @@ Added Vercel-specific scripts:
 
 ### What May Need Adjustment
 
-⚠️ **File Storage**: `data/artifacts` uses Vercel's filesystem (limited)
-⚠️ **Worker Statelessness**: Worker is stateless; job state is in database
-⚠️ **Media Processing**: FFmpeg/Python included in Docker build
+- **File Storage**: Vercel function filesystem is ephemeral, and durable shared artifact storage is not implemented
+- **Worker**: Vercel does not execute the persistent polling worker; host it separately
+- **Media Processing**: FFmpeg/Python are installed in the Docker image, not guaranteed in Vercel serverless functions
 ⚠️ **Long-Running Tasks**: TTS/alignment are synchronous
 
 ### Recommendations for Production
@@ -113,11 +113,11 @@ Added Vercel-specific scripts:
 
 ## Next Steps
 
-1. ✅ Verify local deployment works
-2. ✅ Test all features locally
-3. ⏳ Push to GitHub
-4. ⏳ Deploy to Vercel
-5. ⏳ Configure environment variables
+1. Run `npm ci && npm run check` on a machine with npm registry access
+2. Set up PostgreSQL and persistent worker/artifact hosting
+3. Restrict access at the network or hosting layer
+4. Configure `APP_URL` for the exact deployed HTTPS origin
+5. Run end-to-end tests before publishing
 6. ⏳ Test production deployment
 7. ⏳ Set up monitoring and backups
 

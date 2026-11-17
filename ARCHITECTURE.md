@@ -2,7 +2,7 @@
 
 ## Current implementation
 
-- **Web:** Next.js App Router + React + TypeScript. A responsive client dashboard reads and mutates authenticated API routes. The interface uses actual persisted job/connection state rather than sample production data.
+- **Web:** Next.js App Router + React + TypeScript. A responsive client dashboard reads and mutates passwordless API routes; remote access must be restricted at the network or hosting layer. The interface uses actual persisted job/connection state rather than sample production data.
 - **Contracts:** `lib/types.ts` defines job states, trigger inputs, settings, schedules and dashboard payloads. Zod validates server input.
 - **Persistence:** `lib/db.ts` selects PostgreSQL when `DATABASE_URL` is configured, otherwise SQLite in WAL mode. Schema initialization creates SQL records, durable jobs, schedule occurrences and topic fingerprints. Several domain artifacts are stored as versioned JSON documents, rather than every normalized table from the master specification.
 - **Worker:** a standalone TypeScript process polls the shared database, records heartbeats, claims main/variant jobs under a shared transactional concurrency lock with token-guarded leases, checks pause/cancel at stage boundaries, and invokes the same pipeline for manual and scheduled triggers. Browser tabs are not responsible for scheduling.

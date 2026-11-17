@@ -3,8 +3,6 @@
 
 # Set environment variables from Vercel dashboard
 export DATABASE_URL="${DATABASE_URL:-}"
-export OWNER_PASSWORD="${OWNER_PASSWORD:-}"
-export SESSION_SECRET="${SESSION_SECRET:-}"
 export TOKEN_ENCRYPTION_KEY="${TOKEN_ENCRYPTION_KEY:-}"
 export WRITING_PROVIDER="${WRITING_PROVIDER:-opencode-cli}"
 export OPENCODE_MODEL="${OPENCODE_MODEL:-}"

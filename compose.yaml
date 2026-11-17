@@ -23,8 +23,6 @@ services:
       DATA_DIR: /app/data
       STORAGE_DIR: /app/data/artifacts
       APP_URL: ${APP_URL:-http://localhost:3210}
-      OWNER_PASSWORD: ${OWNER_PASSWORD:?Set OWNER_PASSWORD in .env for Docker}
-      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env for Docker}
       ENABLE_LIVE_PUBLISHING: "false"
     volumes: ["storyman-data:/app/data"]
     depends_on:
