@@ -1937,7 +1937,7 @@ function ConnectionsView({ data, refresh, notify }: SharedProps) {
         <div>
           <h2>Provider configuration</h2>
           <p>Configured services still require a successful provider request.</p>
-          <p>Writing: {data.health.writingProvider}{data.health.writingModel ? ` · ${data.health.writingModel}` : ""}{data.health.writingFallbackConfigured ? " · local fallback configured" : ""}</p>
+          <p>Writing: {data.health.writingProvider}{data.health.writingModel ? ` · ${data.health.writingModel}` : ""}{data.health.writingFallbackConfigured ? " · fallback configured" : ""}</p>
         </div>
         <div>
           {[
@@ -1949,7 +1949,7 @@ function ConnectionsView({ data, refresh, notify }: SharedProps) {
             <span key={String(name)}>
               <span className={`health-dot ${ready ? "ready" : ""}`} />
               {name}
-              <small>{ready ? "Configured" : "Setup needed"}</small>
+              <small>{ready ? name === "Worker" ? "Online" : "Configured" : "Setup needed"}</small>
             </span>
           ))}
         </div>
