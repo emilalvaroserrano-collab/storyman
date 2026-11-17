@@ -62,11 +62,10 @@ git push -u origin main
 
 ### Required for Production
 
-Set these in Vercel Dashboard → Settings → Environment Variables:
+The workspace is passwordless. Protect it with private-network or deployment-level access controls before exposing it remotely. Set these in Vercel Dashboard → Settings → Environment Variables:
 
 ```
-OWNER_PASSWORD=your-secure-password
-SESSION_SECRET=your-session-secret-32-chars-minimum
+APP_URL=https://your-private-storyman.example
 DATABASE_URL=postgres://user:pass@host:5432/db
 TOKEN_ENCRYPTION_KEY=your-token-encryption-key-32-chars-minimum
 ```

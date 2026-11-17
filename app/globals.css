@@ -2183,19 +2183,6 @@ input::-webkit-inner-spin-button {
 .dialog > .primary-button {
   width: 100%;
 }
-.login-shade {
-  z-index: 100;
-  background: var(--bg);
-  backdrop-filter: blur(12px);
-  padding-top: 18vh;
-}
-.login-dialog .field-label {
-  margin-top: 24px;
-}
-.login-dialog .brand-box {
-  width: 42px;
-  height: 42px;
-}
 .detail-shade {
   justify-content: flex-end;
   padding: 0;

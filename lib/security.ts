@@ -1,15 +1,9 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { request as httpsRequest } from 'node:https';
 import { brotliDecompressSync, gunzipSync, inflateSync } from 'node:zlib';
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-import path from 'node:path';
 
-const SESSION_NAME = 'storyman_owner';
-const SESSION_TTL = 60 * 60 * 12;
 const attempts = new Map<string, { count: number; reset: number }>();
-const localHosts = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 export function errorResponse(code: string, message: string, status = 400) { return Response.json({ error: code, message }, { status }); }
 export class RequestBodyError extends Error { constructor(message: string, public status = 400) { super(message); this.name = 'RequestBodyError'; } }
 export async function readJsonBody(request: Request, maxBytes = 64 * 1024): Promise<unknown> {
@@ -27,43 +21,6 @@ export async function readJsonBody(request: Request, maxBytes = 64 * 1024): Prom
   } finally { reader.releaseLock(); }
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown; }
   catch { throw new RequestBodyError('The request body must contain valid JSON.'); }
-}
-export function getDataDir() { return path.resolve(/* turbopackIgnore: true */ process.env.STORYMAN_DATA_DIR || process.env.DATA_DIR || path.join(process.cwd(), 'data')); }
-export function sessionSecret(): string {
-  const configured = process.env.SESSION_SECRET;
-  if (configured && configured.length >= 32) return configured;
-  if (process.env.OWNER_PASSWORD) throw new Error('Set SESSION_SECRET to at least 32 random characters before enabling password access.');
-  const dir = getDataDir(); mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const file = path.join(dir, '.local-session-key');
-  if (!existsSync(file)) { try { writeFileSync(file, randomBytes(48).toString('base64url'), { mode: 0o600, flag: 'wx' }); } catch {} }
-  return readFileSync(file, 'utf8');
-}
-function signature(payload: string) { return createHmac('sha256', sessionSecret()).update(payload).digest('base64url'); }
-export function signValue(value: unknown) { const payload = Buffer.from(JSON.stringify(value)).toString('base64url'); return `${payload}.${signature(payload)}`; }
-export function verifyValue<T>(signed: string | undefined): T | null {
-  if (!signed) return null;
-  const pieces = signed.split('.'); if (pieces.length !== 2) return null;
-  const expected = Buffer.from(signature(pieces[0])); const actual = Buffer.from(pieces[1]);
-  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
-  try { return JSON.parse(Buffer.from(pieces[0], 'base64url').toString('utf8')) as T; } catch { return null; }
-}
-export function readCookie(request: Request, name: string): string | undefined {
-  const part = request.headers.get('cookie')?.split(';').map(x => x.trim()).find(x => x.startsWith(`${name}=`));
-  if (!part) return undefined; try { return decodeURIComponent(part.slice(name.length + 1)); } catch { return undefined; }
-}
-export function isLocalRequest(request: Request) {
-  const u = new URL(request.url);
-  if (!localHosts.has(u.hostname) || request.headers.has('forwarded')) return false;
-  // Next adds its own x-forwarded-for even when the listener is loopback-only.
-  // Accept that local hop; a public or unparseable address anywhere in a proxy
-  // chain still requires password authentication.
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor && forwardedFor.split(',').some(value => !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(value.trim().toLowerCase()))) return false;
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  if (forwardedHost) {
-    try { if (!localHosts.has(new URL(`http://${forwardedHost}`).hostname)) return false; } catch { return false; }
-  }
-  return true;
 }
 export function isSameOrigin(request: Request) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return true;
@@ -90,23 +47,9 @@ export function checkRateLimit(key: string, max = 120, period = 60_000): boolean
 export async function requireOwner(request: Request): Promise<Response | null> {
   if (!isSameOrigin(request)) return errorResponse('CSRF_REJECTED', 'This action must originate from this Storyman dashboard.', 403);
   if (!checkRateLimit(`owner:${request.headers.get('x-forwarded-for') || 'local'}`)) return errorResponse('RATE_LIMITED', 'Too many requests. Try again in a minute.', 429);
-  if (!process.env.OWNER_PASSWORD) return isLocalRequest(request) ? null : errorResponse('OWNER_AUTH_REQUIRED', 'Remote access requires OWNER_PASSWORD and SESSION_SECRET. Local mode is restricted to the loopback interface.', 401);
-  try {
-    const session = verifyValue<{ role: string; exp: number }>(readCookie(request, SESSION_NAME));
-    if (session?.role === 'owner' && session.exp > Date.now()) return null;
-  } catch { return errorResponse('AUTH_CONFIGURATION_REQUIRED', 'Set SESSION_SECRET to at least 32 random characters on the server.', 503); }
-  return errorResponse('OWNER_AUTH_REQUIRED', 'Sign in to your Storyman workspace.', 401);
-}
-export function passwordMatches(input: string): boolean {
-  const stored = process.env.OWNER_PASSWORD;
-  if (!stored || input.length > 4096) return false;
-  const a = createHash('sha256').update(input).digest(); const b = createHash('sha256').update(stored).digest();
-  return timingSafeEqual(a, b);
-}
-export function sessionCookie(request: Request, clear = false): string {
-  const token = clear ? '' : signValue({ role: 'owner', exp: Date.now() + SESSION_TTL * 1000, nonce: randomBytes(16).toString('hex') });
-  const secure = new URL(process.env.APP_URL || request.url).protocol === 'https:' ? '; Secure' : '';
-  return `${SESSION_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${clear ? 0 : SESSION_TTL}${secure}`;
+  // Passwordless workspace access. The origin and rate-limit guards above
+  // remain in force, but there is deliberately no login/session requirement.
+  return null;
 }
 export function isPrivateAddress(address: string): boolean {
   const normalized = address.toLowerCase().replace(/^\[|\]$/g, '');
