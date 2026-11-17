@@ -27,9 +27,8 @@ async function raw(sql: string, values: unknown[] = []): Promise<{ rows: Row[]; 
 export async function initializeDatabase(): Promise<void> {
   if (database.ready) return database.ready;
   database.ready = (async () => {
-    mkdirSync(dataDirectory, { recursive: true });
     if (process.env.DATABASE_URL) database.pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
-    else { database.sqlite = new DatabaseSync(resolve(dataDirectory, 'storyman.sqlite')); database.sqlite.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;'); }
+    else { mkdirSync(dataDirectory, { recursive: true }); database.sqlite = new DatabaseSync(resolve(dataDirectory, 'storyman.sqlite')); database.sqlite.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;'); }
     await raw(`CREATE TABLE IF NOT EXISTS app_records (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
     await raw(`CREATE TABLE IF NOT EXISTS story_jobs (id TEXT PRIMARY KEY, idempotency_key TEXT UNIQUE NOT NULL, status TEXT NOT NULL, trigger_type TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, lease_until TEXT, lease_token TEXT, attempts INTEGER NOT NULL DEFAULT 0, data TEXT NOT NULL)`);
     if (database.pool) await raw('ALTER TABLE story_jobs ADD COLUMN IF NOT EXISTS lease_token TEXT');
