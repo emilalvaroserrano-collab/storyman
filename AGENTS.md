@@ -27,7 +27,7 @@ Single-owner, local-first story/video production app: a Next.js dashboard plus a
 
 - Node 22.13+ (uses built-in `node:sqlite`; verified on 22.23.1), npm, `ffmpeg`/`ffprobe`, Python 3 + Pillow. Run `npm install`, then `cp .env.example .env.local`.
 - Next and `npm run worker`/`doctor` load `.env.local`; plain `tsx scripts/*.ts` (including `npm run media:verify`) does not. Prefix ad-hoc scripts with `node --env-file-if-exists=.env.local --import tsx ...`.
-- Without `OWNER_PASSWORD`, APIs are loopback-only. Remote use needs `OWNER_PASSWORD` and `SESSION_SECRET` (>=32 chars); OAuth token storage needs `TOKEN_ENCRYPTION_KEY` (>=32 chars). Treat `.env.local` as secret; never print or commit it, and never put credentials in `NEXT_PUBLIC_*` or the UI.
+- The dashboard and APIs are passwordless; restrict remote access through a private network or deployment-layer access policy. `APP_URL` must match the deployed HTTPS origin for the CSRF guard. OAuth token storage needs `TOKEN_ENCRYPTION_KEY` (>=32 chars). Treat `.env.local` as secret; never print or commit it, and never put credentials in `NEXT_PUBLIC_*` or the UI.
 - Generation requires real word alignment, but the aligner is optional to install: set up `.venv` with `requirements-alignment.txt` and point `ALIGNMENT_COMMAND_JSON` at it (argv array, no shell). `av<19` is pinned because faster-whisper 1.2.x breaks on PyAV 19.
 - Runtime state lives in `data/storyman.sqlite` (WAL) and `data/artifacts`; both are ignored by `.gitignore`. Keep tests on temporary directories.
 

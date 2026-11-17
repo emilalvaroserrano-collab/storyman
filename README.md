@@ -14,7 +14,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://127.0.0.1:3210](http://127.0.0.1:3210). In a second terminal, start the persistent worker:
+Open [http://127.0.0.1:3210](http://127.0.0.1:3210). The workspace opens directly without a password. Do not expose it publicly without private-network or hosting-layer access controls. In a second terminal, start the persistent worker:
 
 ```bash
 npm run worker

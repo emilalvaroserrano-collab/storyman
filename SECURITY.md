@@ -4,14 +4,14 @@ Storyman is a single-owner workspace. No service has been authorized and no publ
 
 ## Access
 
-- `npm run dev` and `npm start` bind to `127.0.0.1`. Without `OWNER_PASSWORD`, APIs accept loopback hostnames and Next.js-generated loopback forwarding hops only; a public address anywhere in a proxy chain is rejected. Keep this local mode bound to loopback; never expose it through a tunnel or proxy.
-- Set `OWNER_PASSWORD` and a random `SESSION_SECRET` of at least 32 characters for remote access. Terminate HTTPS and set `APP_URL` to the exact external HTTPS origin. Sessions carry the server-authorized owner role and expire after 12 hours. Cookies are HttpOnly, SameSite=Lax, and Secure on HTTPS.
-- Mutating routes compare browser Origin with the configured application origin and reject cross-origin actions. Originless simple-form submissions are blocked; non-browser callers use application/json or X-Storyman-Request: 1. An in-process rate limit caps requests; a single-owner login bucket prevents spoofed proxy headers from bypassing its attempt limit. JSON request streams are limited to 64 KB before parsing. A shared Redis rate limiter and a dedicated user/RBAC model are required before a multi-instance or multi-user release.
-- Authentication and protected artifact APIs run on the server. UI gating is not the authorization boundary.
+- The Storyman dashboard and API are passwordless. `requireOwner` is retained as a compatibility name for the request guard; it no longer authenticates a user. There are no owner login/session cookies or password configuration variables.
+- All visitors who can reach the deployed service can read project data, create jobs, modify settings, and reach OAuth/publishing operations (subject to provider authorization and separate publication approvals). **Restrict deployments to a private network or enforce access control at the reverse proxy/hosting layer** before configuring provider tokens.
+- `npm run dev` and `npm start` bind to `127.0.0.1` by default. For remote use, configure `APP_URL` to the exact HTTPS origin and put network access controls in front of the app.
+- Mutating routes enforce same-origin checks and reject originless simple-form submissions; API callers use `application/json` or `X-Storyman-Request: 1`. In-process rate limits apply. These are CSRF/abuse mitigations, **not authentication**. JSON request streams are limited to 64 KB. A shared limiter is needed for multi-instance deployments.
 
 ## Credentials
 
-OAuth client secrets, AI/TTS keys, encryption keys and sessions are server-only environment variables. Never prefix them with `NEXT_PUBLIC_`. `.env*`, runtime data and media are ignored by Git.
+OAuth client secrets, AI/TTS keys and encryption keys are server-only environment variables. Never prefix them with `NEXT_PUBLIC_`. `.env*`, runtime data and media are ignored by Git.
 
 `TOKEN_ENCRYPTION_KEY` must contain at least 32 random characters. OAuth credentials use AES-256-GCM with a fresh nonce for every write and are stored as individual encrypted records in the configured SQLite/PostgreSQL database. Keep this key separate from database and media backups. Losing it requires reconnecting accounts. Vault encryption is implemented but has not been verified against a real account in this environment.
 
@@ -23,7 +23,7 @@ Source research accepts public HTTPS URLs, forbids embedded credentials and cust
 
 When OpenCode CLI writing is selected, the worker sends the curated source excerpts and writing instructions to the selected Zen cloud model. Each run starts in a temporary directory with a dedicated agent that denies all tools; project files are not attached and the child receives only the environment needed for OpenCode login. The temporary configuration is removed after the run. OpenCode's `--archived` sessions still remain in its own local session store, so source excerpts may persist there. The CLI response is treated as untrusted generated data and still passes JSON schema, source-reference and human review gates. A quota or provider failure can use the separately configured local writer; the job event records the provider used.
 
-Narration uploads use an explicit size cap, magic-byte validation, ffprobe verification and hashed immutable originals. File paths are restricted to safe IDs and filenames. Downloads require owner authorization. Do not serve the runtime `data` directory as public static content.
+Narration uploads use an explicit size cap, magic-byte validation, ffprobe verification and hashed immutable originals. File paths are restricted to safe IDs and filenames. Downloads are passwordless and require network-level access control on any remote deployment. Do not serve the runtime `data` directory as public static content.
 
 ## Publishing controls
 
@@ -33,4 +33,4 @@ Publication reservations are durable unique keys per platform and variant. Inter
 
 ## Release prerequisites
 
-Before exposing this application to the internet: review dependency/container scans, configure HTTPS and owner auth, restore-test encrypted backups, use durable PostgreSQL/object storage, centralize rate limits and secrets, review proxy trust settings, test OAuth callbacks with the real approved apps and run one authorized end-to-end staging/publication test for each enabled destination. Public publishing needs the owner's authorization. This development build is not a completed production security audit.
+Before exposing this application to the internet: review dependency/container scans, configure HTTPS and network/hosting-layer access control, restore-test encrypted backups, use durable PostgreSQL/object storage, centralize rate limits and secrets, review proxy trust settings, test OAuth callbacks with the real approved apps and run one authorized end-to-end staging/publication test for each enabled destination. Public publishing needs the owner's authorization. This development build is not a completed production security audit.

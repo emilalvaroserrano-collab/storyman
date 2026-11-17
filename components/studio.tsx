@@ -280,9 +280,6 @@ export default function Studio() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [dark, setDark] = useState(false);
-  const [login, setLogin] = useState(false);
-  const [password, setPassword] = useState("");
-  const [loggingIn, setLoggingIn] = useState(false);
   const [help, setHelp] = useState(false);
   const notify = useCallback((text: string, error = false) => {
     setNotice({ text, error });
@@ -292,12 +289,10 @@ export default function Studio() {
       const d = await api<DashboardData>("/api/dashboard");
       setData(d);
       setLoadError("");
-      setLogin(false);
       setSelected((j) => (j ? d.jobs.find((x) => x.id === j.id) || j : null));
     } catch (e) {
       const msg = (e as Error).message;
       setLoadError(msg);
-      if (/auth|sign in|unauthorized|login|password/i.test(msg)) setLogin(true);
     } finally {
       setLoading(false);
     }
@@ -772,50 +767,6 @@ export default function Studio() {
               Open connections <ArrowRight size={16} />
             </button>
           </div>
-        </div>
-      )}
-      {login && (
-        <div className="modal-shade login-shade">
-          <form
-            className="dialog login-dialog"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setLoggingIn(true);
-              try {
-                await api("/api/auth/login", {
-                  method: "POST",
-                  body: JSON.stringify({ password }),
-                });
-                setPassword("");
-                await refresh();
-              } catch (e) {
-                notify((e as Error).message, true);
-              } finally {
-                setLoggingIn(false);
-              }
-            }}
-          >
-            <span className="brand-box">
-              <Mark />
-            </span>
-            <h2>Welcome back, Master.</h2>
-            <p>Enter your owner password to open your story studio.</p>
-            <label className="field-label">
-              Password
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoFocus
-                autoComplete="current-password"
-              />
-            </label>
-            <button className="primary-button" disabled={loggingIn}>
-              {loggingIn ? <Loader2 size={17} className="spin" /> : null}Open
-              studio <ArrowRight size={16} />
-            </button>
-          </form>
         </div>
       )}
     </div>

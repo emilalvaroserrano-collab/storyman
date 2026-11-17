@@ -74,8 +74,7 @@ Added Vercel-specific scripts:
 
 | Variable | Purpose | Min Length |
 |----------|---------|------------|
-| `OWNER_PASSWORD` | Owner authentication | 32 chars |
-| `SESSION_SECRET` | Session encryption | 32 chars |
+| `APP_URL` | Exact external HTTPS origin (passwordless workspace; protect at deployment layer) | - |
 | `TOKEN_ENCRYPTION_KEY` | Token encryption | 32 chars |
 | `DATABASE_URL` | Database connection (PostgreSQL) | - |
 

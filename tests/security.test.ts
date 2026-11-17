@@ -3,22 +3,22 @@ import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { assertSafeSourceUrl, checkRateLimit, isPrivateAddress, isSameOrigin, passwordMatches, readJsonBody, requireOwner, sessionCookie, verifyValue, signValue } from '../lib/security';
+import { assertSafeSourceUrl, checkRateLimit, isPrivateAddress, isSameOrigin, readJsonBody, requireOwner } from '../lib/security';
 const oauth=import('../lib/oauth');
 process.env.STORYMAN_DATA_DIR = mkdtempSync(path.join(tmpdir(), 'storyman-security-'));
-process.env.SESSION_SECRET = 'test-session-secret-at-least-32-random-characters';
 process.env.TOKEN_ENCRYPTION_KEY = 'test-encryption-key-at-least-32-random-characters';
 
-test('local owner mode rejects non-loopback hosts and forwarded requests',async()=>{
+test('passwordless workspace accepts local and remote requests without cookies',async()=>{
  delete process.env.OWNER_PASSWORD;
  assert.equal(await requireOwner(new Request('http://localhost:3000/api/jobs')),null);
- assert.equal((await requireOwner(new Request('https://story.example/api/jobs')))?.status,401);
- assert.equal((await requireOwner(new Request('http://localhost:3000/api/jobs',{headers:{'x-forwarded-for':'203.0.113.5'}})))?.status,401);
- assert.equal(await requireOwner(new Request('http://localhost:3000/api/jobs',{headers:{'x-forwarded-for':'127.0.0.1','x-forwarded-host':'localhost:3000'}})),null);
- assert.equal((await requireOwner(new Request('http://localhost:3000/api/jobs',{headers:{'x-forwarded-for':'127.0.0.1, 203.0.113.5'}})))?.status,401);
- assert.equal((await requireOwner(new Request('http://localhost:3000/api/jobs',{headers:{'x-forwarded-host':'public.example'}})))?.status,401);
+ assert.equal(await requireOwner(new Request('https://story.example/api/jobs')),null);
+ assert.equal(await requireOwner(new Request('https://story.example/api/jobs',{headers:{'x-forwarded-for':'203.0.113.5'}})),null);
+ assert.equal(await requireOwner(new Request('https://story.example/api/jobs',{headers:{Cookie:'storyman_owner=invalid'}})),null);
+ process.env.OWNER_PASSWORD='obsolete-variable-must-be-ignored';
+ assert.equal(await requireOwner(new Request('https://story.example/api/jobs')),null);
+ delete process.env.OWNER_PASSWORD;
 });
-test('mutations reject foreign origins before authentication',async()=>{
+test('mutations reject foreign origins despite passwordless access',async()=>{
  const request=new Request('http://localhost:3000/api/settings',{method:'PUT',headers:{Origin:'https://hostile.example'}});
  assert.equal(isSameOrigin(request),false); assert.equal((await requireOwner(request))?.status,403);
 });
@@ -27,17 +27,7 @@ test('originless simple forms cannot mutate local state',async()=>{
  assert.equal(await requireOwner(new Request('http://localhost:3000/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'}})),null);
  assert.equal(await requireOwner(new Request('http://localhost:3000/api/settings',{method:'POST',headers:{'X-Storyman-Request':'1'}})),null);
 });
-test('password sessions are signed, expiring and protected from tampering',async()=>{
- process.env.OWNER_PASSWORD='correct-test-password';
- assert.equal(passwordMatches('correct-test-password'),true); assert.equal(passwordMatches('wrong'),false);
- assert.equal((await requireOwner(new Request('https://story.example/api/jobs')))?.status,401);
- const cookie=sessionCookie(new Request('https://story.example/api/auth/login'));
- assert.match(cookie,/HttpOnly/);assert.match(cookie,/Secure/);assert.match(cookie,/SameSite=Lax/);
- assert.equal(await requireOwner(new Request('https://story.example/api/jobs',{headers:{Cookie:cookie.split(';')[0]}})),null);
- const expired=signValue({role:'owner',exp:Date.now()-1000});assert.equal((await requireOwner(new Request('https://story.example/api/jobs',{headers:{Cookie:`storyman_owner=${expired}`}})))?.status,401);
- assert.equal(verifyValue(signValue({role:'owner'})+'x'),null);delete process.env.OWNER_PASSWORD;
-});
-test('rate limits cap repeated login attempts',()=>{const key=`security-test-${Date.now()}`;for(let i=0;i<5;i++)assert.equal(checkRateLimit(key,5),true);assert.equal(checkRateLimit(key,5),false);});
+test('rate limits cap repeated API requests',()=>{const key=`security-test-${Date.now()}`;for(let i=0;i<5;i++)assert.equal(checkRateLimit(key,5),true);assert.equal(checkRateLimit(key,5),false);});
 test('source validation rejects insecure, credentialed, loopback and metadata addresses',async()=>{
  for(const source of ['http://example.com','https://name:secret@example.com','https://127.0.0.1','https://169.254.169.254/latest/meta-data','https://[::1]/','https://[::ffff:127.0.0.1]/','https://host.local/path','https://example.com:8443'])await assert.rejects(assertSafeSourceUrl(source));
  assert.equal(isPrivateAddress('10.1.2.3'),true);assert.equal(isPrivateAddress('172.31.1.2'),true);assert.equal(isPrivateAddress('192.168.1.1'),true);assert.equal(isPrivateAddress('100.100.100.100'),true);assert.equal(isPrivateAddress('fd00::1'),true);assert.equal(isPrivateAddress('8.8.8.8'),false);
@@ -87,6 +77,6 @@ test('an in-flight token refresh cannot resurrect a disconnected account',async(
 test('JSON input is stream-bounded and parser errors never reflect secret input',async()=>{
  const request=new Request('http://localhost:3210/api/settings',{method:'PUT',body:'x'.repeat(70*1024),headers:{'Content-Type':'application/json'}});
  await assert.rejects(readJsonBody(request),/64 KB limit/);
- await assert.rejects(readJsonBody(new Request('http://localhost:3210/api/auth/login',{method:'POST',body:'{"password":"private-input" BAD JSON'})),error=>error instanceof Error && error.message==='The request body must contain valid JSON.');
+ await assert.rejects(readJsonBody(new Request('http://localhost:3210/api/settings',{method:'POST',body:'{"token":"private-input" BAD JSON'})),error=>error instanceof Error && error.message==='The request body must contain valid JSON.');
  assert.deepEqual(await readJsonBody(new Request('http://localhost:3210/api/settings',{method:'PUT',body:'{"duration":300}'})),{duration:300});
 });

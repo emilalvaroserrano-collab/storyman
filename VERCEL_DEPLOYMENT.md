@@ -15,8 +15,7 @@ Set these in Vercel Dashboard → Settings → Environment Variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `OWNER_PASSWORD` | Password for owner authentication (must be ≥32 chars) | `your-secure-password` |
-| `SESSION_SECRET` | Session encryption key (must be ≥32 chars) | `your-session-secret` |
+| `APP_URL` | Exact HTTPS origin used for same-origin request checks | `https://your-private-storyman.example` |
 | `DATABASE_URL` | PostgreSQL URL for production (optional, uses SQLite locally) | `postgres://user:pass@host:5432/db` |
 | `TOKEN_ENCRYPTION_KEY` | Token encryption key (must be ≥32 chars) | `your-token-encryption-key` |
 
@@ -150,7 +149,7 @@ The worker runs as a separate process in Vercel's serverless environment. It:
 
 - Check that all environment variables are set correctly
 - Ensure `DATABASE_URL` is valid if using PostgreSQL
-- Verify `OWNER_PASSWORD` and `SESSION_SECRET` are ≥32 characters
+- Restrict the passwordless workspace to approved users via deployment-layer access control or private networking
 
 ### Runtime Errors
 

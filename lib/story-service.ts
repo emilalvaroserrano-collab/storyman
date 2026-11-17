@@ -103,7 +103,7 @@ export async function saveScriptReview(id:string,input:unknown):Promise<Job> {
   const count=parsed.script.split(/\s+/).length;const bounds=scriptLengthBounds(current.duration);
   if(parsed.editorialApproved && (count<bounds.min || count>bounds.max))throw new Error(`Approval requires ${bounds.min}–${bounds.max} spoken words for the ${current.duration}-second target; this revision has ${count}. Save it as a draft or revise the length.`);
   const version=(current.scriptVersion||0)+1;const at=new Date().toISOString();
-  const document={title:parsed.title,script:parsed.script,claims:parsed.claims,uncertainties:parsed.editorialApproved?[]:current.uncertainties||[],version,editorialApproved:parsed.editorialApproved,reviewedAt:at,reviewAuthority:parsed.editorialApproved?'authenticated owner':null,spokenWords:count,targetSeconds:current.duration};
+  const document={title:parsed.title,script:parsed.script,claims:parsed.claims,uncertainties:parsed.editorialApproved?[]:current.uncertainties||[],version,editorialApproved:parsed.editorialApproved,reviewedAt:at,reviewAuthority:parsed.editorialApproved?'workspace reviewer':null,spokenWords:count,targetSeconds:current.duration};
   const revision=await writeArtifact(id,`script_revision_${version}.json`,JSON.stringify(document,null,2));
   const script=await writeArtifact(id,'script.md',parsed.script);const claims=await writeArtifact(id,'script.json',JSON.stringify(document,null,2));
   const revisions=[...(current.scriptRevisions||[]),{version,at,url:revision,approved:parsed.editorialApproved}].slice(-10);
