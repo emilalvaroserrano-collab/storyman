@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+process.env.STORYMAN_DATA_DIR=mkdtempSync(path.join(tmpdir(),'storyman-publishing-'));
+const publishing=import('../lib/publishers');
+const metadata={title:'Reviewed story',description:'Sourced story',hashtags:[],approved:true as const,rightsApproved:true as const,consent:true as const,privacy:'private' as const,isAiGenerated:true,commercialContent:false};
+const variant={id:randomUUID(),jobId:randomUUID(),platform:'youtube' as const,filename:'variant_youtube.mp4',duration:60,sha256:'unverified',adaptedNarrative:false,qaPassed:false,editorialApproved:false,rightsApproved:false};
+test('publisher metadata requires privacy and explicit per-post consent',async()=>{const {publishMetadataSchema}=await publishing;assert.equal(publishMetadataSchema.safeParse(metadata).success,true);assert.equal(publishMetadataSchema.safeParse({...metadata,privacy:undefined}).success,false);assert.equal(publishMetadataSchema.safeParse({...metadata,consent:false}).success,false);assert.equal(publishMetadataSchema.safeParse({...metadata,rightsApproved:false}).success,false);});
+test('master videos cannot bypass adaptation or editorial/rights checks',async()=>{const {validateVariant}=await publishing;await assert.rejects(validateVariant(variant,metadata),/complete platform-specific narrative/);await assert.rejects(validateVariant({...variant,adaptedNarrative:true},metadata),/factual claims, media rights/);});
+test('ineligible variants fail before any upstream upload request',async()=>{const {YouTubePublisher}=await publishing;const original=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;throw new Error('Unexpected network request');};try{await assert.rejects(new YouTubePublisher().publish(variant,metadata,{id:'test',variantId:variant.id,platform:'youtube',status:'UPLOADING',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}));assert.equal(calls,0);}finally{globalThis.fetch=original;}});
+test('durable publication reservations prevent duplicate uploads',async()=>{const {reservePublication}=await publishing;const a=await reservePublication(variant),b=await reservePublication(variant);assert.equal(a.reserved,true);assert.equal(b.reserved,false);assert.equal(a.record.id,b.record.id);assert.equal(b.record.status,'UPLOADING');});

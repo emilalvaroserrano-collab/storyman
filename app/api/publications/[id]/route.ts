@@ -1,0 +1,4 @@
+import { getPublication, getPublisher } from '@/lib/publishers';
+import { errorResponse, requireOwner } from '@/lib/security';
+export const runtime='nodejs';
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){const denied=await requireOwner(request);if(denied)return denied;const{id}=await params;if(!/^[a-f0-9]{32}$/.test(id))return errorResponse('NOT_FOUND','Publication not found.',404);const record=await getPublication(id);if(!record)return errorResponse('NOT_FOUND','Publication not found.',404);if(record.externalId)try{return Response.json({publication:await getPublisher(record.platform).getStatus(record)});}catch{return Response.json({publication:record,statusVerification:'unavailable',message:'Could not refresh the provider state. The last verified state is shown.'});}return Response.json({publication:record});}

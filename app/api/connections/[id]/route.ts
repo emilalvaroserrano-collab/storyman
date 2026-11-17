@@ -1,0 +1,4 @@
+import { isProvider, revokeConnection } from '@/lib/oauth';
+import { errorResponse, requireOwner } from '@/lib/security';
+export const runtime='nodejs';
+export async function DELETE(request:Request,{params}:{params:Promise<{id:string}>}){const denied=await requireOwner(request);if(denied)return denied;const{id}=await params;if(!isProvider(id))return errorResponse('UNKNOWN_PROVIDER','Unsupported connection.',404);try{const result=await revokeConnection(id);return Response.json({disconnected:true,revoked:result.revoked,message:result.revoked?'Authorization revoked and local credentials removed.':'Local credentials removed. Revoke the application in the provider account settings if remote revocation was unavailable.'});}catch{return errorResponse('DISCONNECT_FAILED','The token vault could not be opened. Restore its encryption key to disconnect safely.',409);}}

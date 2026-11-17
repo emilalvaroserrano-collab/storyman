@@ -1,0 +1,5 @@
+# Optional real local STT alignment. Use Python 3.11/3.12 if wheels are unavailable.
+faster-whisper>=1.2,<2
+Pillow>=10,<13
+# faster-whisper 1.2.x calls av.open(metadata_errors=...), removed by PyAV 19.
+av>=11,<19

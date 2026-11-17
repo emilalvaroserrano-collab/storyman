@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.env*
+!.env.example
+data/*
+!data/.gitkeep
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+*.tsbuildinfo
+.venv/
+__pycache__/
+reference-video/
