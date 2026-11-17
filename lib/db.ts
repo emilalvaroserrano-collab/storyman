@@ -35,6 +35,9 @@ export async function initializeDatabase(): Promise<void> {
     if (database.pool) await raw('ALTER TABLE story_jobs ADD COLUMN IF NOT EXISTS lease_token TEXT');
     else if (!(await raw('PRAGMA table_info(story_jobs)')).rows.some(row => row.name === 'lease_token')) await raw('ALTER TABLE story_jobs ADD COLUMN lease_token TEXT');
     await raw(`CREATE INDEX IF NOT EXISTS story_jobs_status ON story_jobs (status, created_at)`);
+    await raw('CREATE TABLE IF NOT EXISTS story_cards (scene_id TEXT PRIMARY KEY, job_id TEXT NOT NULL, ordinal INTEGER NOT NULL, revision INTEGER NOT NULL, data TEXT NOT NULL, UNIQUE(job_id, ordinal))');
+    await raw('CREATE INDEX IF NOT EXISTS story_cards_job ON story_cards (job_id, ordinal)');
+    await raw('CREATE TABLE IF NOT EXISTS story_card_revisions (scene_id TEXT NOT NULL, revision INTEGER NOT NULL, archived_at TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(scene_id, revision))');
     await raw('CREATE TABLE IF NOT EXISTS variant_requests (id TEXT PRIMARY KEY, idempotency_key TEXT UNIQUE NOT NULL, source_job_id TEXT NOT NULL, platform TEXT NOT NULL, status TEXT NOT NULL, lease_until TEXT, lease_token TEXT, attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, data TEXT NOT NULL)');
     if (database.pool) await raw('ALTER TABLE variant_requests ADD COLUMN IF NOT EXISTS lease_token TEXT');
     else if (!(await raw('PRAGMA table_info(variant_requests)')).rows.some(row => row.name === 'lease_token')) await raw('ALTER TABLE variant_requests ADD COLUMN lease_token TEXT');

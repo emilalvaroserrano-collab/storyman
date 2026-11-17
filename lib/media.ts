@@ -88,7 +88,7 @@ export function splitForSpeech(script: string, maxLength = 1800): string[] {
   if (current) chunks.push(current); return chunks;
 }
 export interface NarrationFingerprint { scriptSha256: string; providerFingerprint: string; requestFingerprint: string; effectiveVoice: string; chunkSize: number; }
-export type TtsProviderKind = 'gemini' | 'openai-compatible';
+export type TtsProviderKind = 'gemini' | 'openai-compatible' | 'zonos';
 export interface ResolvedTtsConfig { kind: TtsProviderKind; baseUrl: string; model: string; voice: string; apiKey: string; style?: string; }
 export const GEMINI_TTS_DEFAULT_MODEL = 'gemini-3.8-flash-tts';
 export const GEMINI_TTS_DEFAULT_VOICE = 'Riko';
@@ -98,8 +98,7 @@ const NATURAL_VOICES = ['Natural storyteller', 'natural'];
 function ttsUsesGemini(env: Record<string,string|undefined>) {
   const explicit = (env.TTS_PROVIDER || '').trim().toLowerCase();
   if (['gemini', 'google', 'google-gemini'].includes(explicit)) return true;
-  if (['openai', 'openai-compatible', 'compatible'].includes(explicit)) return false;
-  return Boolean(env.GEMINI_API_KEY);
+  return explicit === 'gemini' || explicit === 'google' || explicit === 'google-gemini';
 }
 export function resolveTtsConfig(voice?: string, env: Record<string,string|undefined> = process.env): ResolvedTtsConfig | null {
   const selected = voice && !NATURAL_VOICES.includes(voice) ? voice : undefined;
@@ -109,7 +108,7 @@ export function resolveTtsConfig(voice?: string, env: Record<string,string|undef
     apiKey: env.GEMINI_API_KEY?.trim() || '', style: env.GEMINI_TTS_STYLE?.trim() || GEMINI_TTS_DEFAULT_STYLE,
   };
   if (!env.TTS_BASE_URL || !env.TTS_MODEL) return null;
-  return { kind: 'openai-compatible', baseUrl: env.TTS_BASE_URL.replace(/\/$/, ''), model: env.TTS_MODEL, voice: selected || env.TTS_VOICE || 'alloy', apiKey: env.TTS_API_KEY || '' };
+  return { kind: env.TTS_PROVIDER?.toLowerCase()==='zonos'?'zonos':'openai-compatible', baseUrl: env.TTS_BASE_URL.replace(/\/$/, ''), model: env.TTS_MODEL, voice: selected || env.TTS_VOICE || 'alloy', apiKey: env.TTS_API_KEY || '' };
 }
 export function narrationFingerprint(script: string, voice?: string, env: Record<string,string|undefined> = process.env): NarrationFingerprint {
   const configured=Number(env.TTS_CHUNK_CHARS);
@@ -196,7 +195,7 @@ export async function synthesizeNarration(jobId: string, script: string, voice?:
   const previous=await readNarrationVersion(jobId,'narration.json');
   if(previous?.original)throw new MediaBlockedError('NEEDS_REVIEW','Uploaded narration is immutable. A synthesis request cannot replace an uploaded audio master.');
   if(previous && canReuseNarration(previous,fingerprint))return previous;
-  if(!config) throw new MediaBlockedError('BLOCKED_AUTH', 'Configure Gemini TTS (GEMINI_API_KEY) or an OpenAI-compatible TTS_BASE_URL and TTS_MODEL (plus TTS_API_KEY when required), or upload your own WAV/MP3 narration.');
+  if(!config) throw new MediaBlockedError('BLOCKED_AUTH', 'Configure local ZONOS3-Mini using TTS_PROVIDER=zonos, TTS_BASE_URL and TTS_MODEL, or upload your own WAV/MP3 narration.');
   if(config.kind==='gemini' && !config.apiKey) throw new MediaBlockedError('BLOCKED_AUTH', 'Gemini TTS is selected but GEMINI_API_KEY is empty. Add the server-side key or upload your own WAV/MP3 narration.');
   const versionName=`narration-${fingerprint.requestFingerprint}`;
   const existing=await readNarrationVersion(jobId,`${versionName}.json`);

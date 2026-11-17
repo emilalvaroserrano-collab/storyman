@@ -80,19 +80,21 @@ test('gemini tts request carries model, style annotation, audio format and voice
  const plain=buildGeminiTtsRequest('Walang estilo.',{model:'gemini-3.8-flash-tts',voice:'Riko'});
  assert.deepEqual(plain.input[0].content[0].annotations,[]);
 });
-test('tts provider resolution prefers explicit selection over auto-detection',()=>{
- const gemini=resolveTtsConfig(undefined,{GEMINI_API_KEY:'unit-test-gemini-credential'});
+test('tts provider resolution requires explicit Gemini selection and supports local ZONOS3',()=>{
+ assert.equal(resolveTtsConfig(undefined,{GEMINI_API_KEY:'unit-test-gemini-credential'}),null);
+ const gemini=resolveTtsConfig(undefined,{TTS_PROVIDER:'gemini',GEMINI_API_KEY:'unit-test-gemini-credential'});
  assert.equal(gemini?.kind,'gemini');
  assert.equal(gemini?.model,'gemini-3.8-flash-tts');
  assert.equal(gemini?.voice,'Riko');
  assert.equal(gemini?.style,'Rich, velvety, unhurried audiobook narration');
  assert.equal(gemini?.baseUrl,'https://generativelanguage.googleapis.com/v1beta');
  assert.equal(resolveTtsConfig(undefined,{TTS_BASE_URL:'https://tts.example/v1',TTS_MODEL:'voice-model'})?.kind,'openai-compatible');
+ assert.equal(resolveTtsConfig(undefined,{TTS_PROVIDER:'zonos',TTS_BASE_URL:'http://127.0.0.1:1919/v1',TTS_MODEL:'zonos3'})?.kind,'zonos');
  assert.equal(resolveTtsConfig(undefined,{GEMINI_API_KEY:'k',TTS_PROVIDER:'openai-compatible',TTS_BASE_URL:'https://tts.example/v1',TTS_MODEL:'voice-model'})?.kind,'openai-compatible');
  assert.equal(resolveTtsConfig(undefined,{TTS_PROVIDER:'gemini'})?.kind,'gemini');
  assert.equal(resolveTtsConfig(undefined,{TTS_PROVIDER:'gemini',GEMINI_TTS_VOICE:'Puck'})?.voice,'Puck');
- assert.equal(resolveTtsConfig('A distinct narrator',{GEMINI_API_KEY:'k'})?.voice,'A distinct narrator');
- assert.equal(resolveTtsConfig('natural',{GEMINI_API_KEY:'k'})?.voice,'Riko');
+ assert.equal(resolveTtsConfig('A distinct narrator',{TTS_PROVIDER:'gemini',GEMINI_API_KEY:'k'})?.voice,'A distinct narrator');
+ assert.equal(resolveTtsConfig('natural',{TTS_PROVIDER:'gemini',GEMINI_API_KEY:'k'})?.voice,'Riko');
  assert.equal(resolveTtsConfig(undefined,{}),null);
 });
 test('gemini audio extraction wraps headerless pcm and preserves wav bytes',()=>{
@@ -111,7 +113,7 @@ test('gemini audio extraction wraps headerless pcm and preserves wav bytes',()=>
  assert.throws(()=>extractGeminiTtsAudio({steps:[{type:'model_output',content:[{type:'text',text:'no audio'}]}]}),/did not contain an audio block/);
 });
 test('gemini narration fingerprints track voice, style, model and credential changes',()=>{
- const env={GEMINI_API_KEY:'unit-test-gemini-credential',GEMINI_TTS_MODEL:'gemini-3.8-flash-tts',GEMINI_TTS_VOICE:'Riko',GEMINI_TTS_STYLE:'Rich, velvety, unhurried audiobook narration'};
+ const env={TTS_PROVIDER:'gemini',GEMINI_API_KEY:'unit-test-gemini-credential',GEMINI_TTS_MODEL:'gemini-3.8-flash-tts',GEMINI_TTS_VOICE:'Riko',GEMINI_TTS_STYLE:'Rich, velvety, unhurried audiobook narration'};
  const base=narrationFingerprint('Original spoken script.','natural',env);
  assert.deepEqual(narrationFingerprint('Original spoken script.','natural',{...env}),base);
  for(const changed of [{GEMINI_TTS_VOICE:'Puck'},{GEMINI_TTS_STYLE:'Brisk newsreader'},{GEMINI_TTS_MODEL:'gemini-other-tts'},{GEMINI_API_KEY:'different-unit-test-credential'}])assert.notEqual(narrationFingerprint('Original spoken script.','natural',{...env,...changed}).providerFingerprint,base.providerFingerprint);

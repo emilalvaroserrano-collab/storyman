@@ -17,7 +17,7 @@ Single-owner, local-first story/video production app: a Next.js dashboard plus a
 - `npm run dev` — web UI at `http://127.0.0.1:3210` (loopback only).
 - `npm run worker` — required in a second terminal for jobs, variants and schedules. The web server never executes the pipeline.
 - `npm run check` — the real gate: `typecheck` -> `test` -> `build`. Run it before finishing.
-- Script writing prefers the installed OpenCode Zen CLI free model (`WRITING_PROVIDER=opencode-cli`, `OPENCODE_MODEL=opencode/glm-5.3-flash-free`) and falls back to configured `AI_BASE_URL`/`AI_MODEL` on quota/provider errors. The OpenCode agent has all tools denied; do not change that boundary or pass TTS/OAuth secrets to its environment.
+- Script writing uses an installed OpenCode Zen CLI free model discovered at runtime (`WRITING_PROVIDER=opencode-cli`); alternate `AI_BASE_URL`/`AI_MODEL` writing is allowed only with `ALLOW_WRITING_FALLBACK=true`. The OpenCode agent has all tools denied; do not change that boundary or pass TTS/OAuth secrets to its environment.
 - `npm test` — Node test runner via tsx over `tests/*.test.ts`; use `node:test` + `node:assert/strict` (no Jest/Vitest). Single file: `npx tsx --test tests/media.test.ts`. Single case: `npx tsx --test --test-name-pattern "alignment gates" tests/media.test.ts`.
 - `npm run doctor` — prints tool availability and config booleans without secrets.
 - No lint/format tooling exists (no ESLint, Prettier or `npm run lint`); don't add one for unrelated work.

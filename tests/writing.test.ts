@@ -20,6 +20,7 @@ test('provider timeouts are bounded and missing model configuration fails before
 test('OpenCode free model is recognized without an API key and errors are not accepted as content',()=>{
  assert.equal(writingConfigured({WRITING_PROVIDER:'opencode-cli',OPENCODE_MODEL:'opencode/glm-5.3-flash-free'}),true);
  assert.equal(writingConfigured({WRITING_PROVIDER:'opencode-cli'}),false);
+ assert.equal(writingConfigured({WRITING_PROVIDER:'opencode-cli'},'opencode/beam-free'),true);
  const text=JSON.stringify({type:'text',part:{type:'text',text:'{"ok":true}'}});
  assert.equal(parseOpenCodeEvents(`${JSON.stringify({type:'step_start'})}\n${text}`),'{"ok":true}');
  assert.throws(()=>parseOpenCodeEvents(JSON.stringify({type:'error',error:{type:'provider.free-limit',status:429}})),/free usage limit/);
@@ -28,14 +29,14 @@ test('OpenCode free model is recognized without an API key and errors are not ac
 test('OpenCode quota failure falls back to the configured local writer and reports provenance',async()=>{
  const directory=await mkdtemp(join(tmpdir(),'storyman-writing-test-'));
  const cli=join(directory,'fake-opencode');
- await writeFile(cli,'#!/usr/bin/env node\nconsole.log(JSON.stringify({type:"error",error:{type:"provider.free-limit",status:429}}));process.exit(1);\n');await chmod(cli,0o700);
+ await writeFile(cli,'#!/usr/bin/env node\nif(process.argv[2]==="models"){console.log("opencode/glm-5.3-flash-free");process.exit(0)}console.log(JSON.stringify({type:"error",error:{type:"provider.free-limit",status:429}}));process.exit(1);\n');await chmod(cli,0o700);
  const server=createServer((_request,response)=>{response.setHeader('Content-Type','application/json');response.end(JSON.stringify({message:{content:'{"title":"Verified fallback"}'},done_reason:'stop'}));});
  await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
  const address=server.address();if(!address || typeof address==='string')throw new Error('Test HTTP server did not bind.');
- const names=['WRITING_PROVIDER','OPENCODE_MODEL','OPENCODE_PATH','AI_MODEL','AI_BASE_URL','AI_PROVIDER'] as const;
+ const names=['WRITING_PROVIDER','OPENCODE_MODEL','OPENCODE_PATH','AI_MODEL','AI_BASE_URL','AI_PROVIDER','ALLOW_WRITING_FALLBACK'] as const;
  const saved=Object.fromEntries(names.map(name=>[name,process.env[name]]));
- Object.assign(process.env,{WRITING_PROVIDER:'opencode-cli',OPENCODE_MODEL:'opencode/glm-5.3-flash-free',OPENCODE_PATH:cli,AI_MODEL:'fallback-test',AI_BASE_URL:`http://127.0.0.1:${address.port}/v1`,AI_PROVIDER:'ollama'});
+ Object.assign(process.env,{WRITING_PROVIDER:'opencode-cli',OPENCODE_MODEL:'opencode/glm-5.3-flash-free',OPENCODE_PATH:cli,AI_MODEL:'fallback-test',AI_BASE_URL:`http://127.0.0.1:${address.port}/v1`,AI_PROVIDER:'ollama',ALLOW_WRITING_FALLBACK:'true'});
  const warning=console.warn;console.warn=()=>{};
- try{const result=await writeStructured(messages);assert.equal(result.text,'{"title":"Verified fallback"}');assert.equal(result.provider,'ollama');assert.equal(result.model,'fallback-test');assert.equal(result.fallback,true);}
+ try{process.env.ALLOW_WRITING_FALLBACK='false';await assert.rejects(()=>writeStructured(messages),/free usage limit/);process.env.ALLOW_WRITING_FALLBACK='true';const result=await writeStructured(messages);assert.equal(result.text,'{"title":"Verified fallback"}');assert.equal(result.provider,'ollama');assert.equal(result.model,'fallback-test');assert.equal(result.fallback,true);}
  finally{console.warn=warning;for(const name of names){if(saved[name]===undefined)delete process.env[name];else process.env[name]=saved[name];}server.close();await rm(directory,{recursive:true,force:true});}
 });

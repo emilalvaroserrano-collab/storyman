@@ -2254,6 +2254,9 @@ function JobDetail({
             </div>
           )}
           <div className="detail-actions">
+            <a className="secondary-button" href={`/story-card.html?jobId=${encodeURIComponent(j.id)}`}>
+              <Layers size={14} /> Story Cards
+            </a>
             {!["PUBLISHED", "CANCELLED"].includes(j.status) && (
               <>
                 <button
