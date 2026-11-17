@@ -1,0 +1,54 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+.next
+dist
+build
+
+# Environment
+.env
+.env.local
+.env*.local
+.vercel
+
+# Database
+data
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Artifacts
+artifacts
+*.mp4
+*.wav
+*.mp3
+*.srt
+*.vtt
+*.ass
+
+# Python
+.venv
+__pycache__
+*.pyc
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage
+playwright-report
+test-results

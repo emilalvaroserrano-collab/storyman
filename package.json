@@ -11,7 +11,10 @@
     "worker": "node --env-file-if-exists=.env.local --import tsx scripts/worker.ts",
     "check": "npm run typecheck && npm test && npm run build",
     "doctor": "node --env-file-if-exists=.env.local --import tsx scripts/doctor.ts",
-    "media:verify": "tsx scripts/verify-media.ts"
+    "media:verify": "tsx scripts/verify-media.ts",
+    "vercel-build": "vercel-build.sh",
+    "vercel-dev": "vercel-dev.sh",
+    "vercel-worker": "vercel-worker.sh"
   },
   "dependencies": {
     "lucide-react": "^0.577.0",
